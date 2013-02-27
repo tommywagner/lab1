@@ -1,0 +1,23 @@
+store 1,$negone #put negative one into m[10]
+sll 1, $flag    #make the $flag 0
+lw $flag, 63    #load from start of address 63  (63 hard-code for Mem[9])
+sll 16, $beq2     #clear beq2, which will be the string being searched for
+add $load, $beq2  #put M[9] into beq2
+
+sll 16, $t1     #clear out a counter
+sll 16, $beq3
+
+ForLabel:
+
+lw $flag, $t1       #load from either start or halfway through mem[count]  (when count is one, load reads from address 96)
+add $flag, $t1      #add the flag value to t1, this ensures t1 only gets incremented half the time 
+add $one, $flag     #add one to the flag (flag = not(flag))
+sll 16, $beq1       #clear $beq1 so we can put $load into it
+add $load, $beq1    #now that beq1 is clear, put load into it
+beq $beq1, $beq2, Load #compare beq1 == load to the saved string we are searching for, if true go to End (t4 is == $beq2)
+beq $t1, $47, end   #if the count is too high, break
+beq $zero, $beq3, ForLabel
+
+Load:
+store 1, $t1
+End:
