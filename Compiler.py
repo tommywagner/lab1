@@ -12,26 +12,40 @@ registers = {"$t1"  : "0000",
              "$t2"  : "0001",
              "$t3"  : "0010",
              "$t4"  : "0011",
-             "$t5"  : "0100",
-             "$t6"  : "0101",
-             "$t7"  : "0110",
-             "$t8"  : "0111",
-             "$s1"  : "1000",
-             "$s2"  : "1001",
-             "$s3"  : "1010",             
-             "$s4"  : "1011",
-             "$s5"  : "1100",
-             "$s6"  : "1101",
-             "$zero"  : "1110",
-             "$one"  : "1111"
+             "$store"  : "0100",
+             "$beq1"  : "0101",
+             "$beq2"  : "0110",
+             "$beq3"  : "0111",
+             "$s1"  : "1000", 
+             "$47"  : "1001", 
+             "$flag"  : "1010", 
+             "$four"  : "1011",
+             "$load"  : "1100",
+             "$negone"  : "1101",
+             "$zero": "1110",
+             "$one" : "1111"
              }
 
 
 def get_binary():
-    progIn = open("compilerIn.txt", "r")
+    progIn = open("compilerIn.txt", "r+")
     progOut = open("compilerOut.txt", "w")
     count = 0
-    for line in progIn:
+    labels = {}
+    data = progIn.readlines()
+    for x in range(len(data)):
+        count += 1
+        inputLine = data[x].split()
+        if inputLine[0][0:5] == "Label":
+            # add {Labels# : count(base 2)} to the labels dictionary .  b's show up for some reason so i replace them
+            labels[inputLine[0].replace(":", "")] = bin(count).replace("b", "0").zfill(5)
+            data[x] = " ".join(inputLine[1:len(inputLine)]) + "\n"
+            
+    print data, "!!!", labels
+    
+
+    count=0
+    for line in data:
         count += 1
         inputLine = line.split()
         outputLine = []
@@ -39,6 +53,7 @@ def get_binary():
         for x in range(len(inputLine)):
             inputLine[x] = inputLine[x].replace(",", "")
             
+            #get the opcodes
             if x == 0: 
                 outputLine.append(opcodes.get(inputLine[x]))
                 
@@ -51,9 +66,10 @@ def get_binary():
                 
                 elif (inputLine[0] == "beq"):
                     if (len(inputLine) != 4):
-                        print "Error on line", count, ":", "\n    wrong number of args for a beq instr"; return                        
+                        print "Error on line", count, ":", "\n    wrong number of args for a beq instr"; return           
+                                     
             # first argument 
-            elif x ==1:
+            elif x ==1: 
                 if (inputLine[0] == "and") or (inputLine[0] == "add") or (inputLine[0] == "shift"):
                                         
                     if not(registers.has_key(inputLine[x])):
@@ -67,6 +83,7 @@ def get_binary():
                         print "Error on line", count, ":\n    second arg of a load/store/beg instr must be 1 or 0, got ", inputLine[x]; return                        
                     
                     outputLine.append(inputLine[x])#1 or a zero
+                    
             # second argument 
             elif x ==2:
                 if (inputLine[0] == "and") or (inputLine[0] == "add") or (inputLine[0] == "shift"):
@@ -80,6 +97,8 @@ def get_binary():
                     
                     # this is the flag for load/store
                     
+                    # store flag is 1 for storing to stack and 0 for storing to mem[10]
+                    
                     if inputLine[1] == "0": 
                         pass# what to do if it was a zero
                     else:
@@ -89,15 +108,16 @@ def get_binary():
                     outputLine.append(inputLine[x])
                     
                 elif (inputLine[0] == "beq"):
-                    if not(registers.has_key(inputLine[x])):
-                        print "Error on line", count, ":", "\n    second arg on a beq instr must be a register, got ", inputLine[x]; return
-                    outputLine.append(registers.get(inputLine[x]))
+                    if (inputLine[x][0] != "0") and (inputLine[x][0] != "1"):                       
+                        print "Error on line", count, ":\n    second arg of a load/store/beg instr must be 1 or 0, got ", inputLine[x]; return   
+                        
+                    outputLine.append(inputLine[x])                    
                     
             # third argument, beq only   
             elif x == 3:
-                
-                #how to handle hardcoded labels?
-                outputLine.append(inputLine[x])
+                if not(labels.has_key(inputLine[x])):                       
+                    print "Error on line", count, ":\n    unknown label: ", inputLine[x]; return 
+                outputLine.append(labels.get(inputLine[x]))
                 
         progOut.writelines(outputLine + ["\n"])
     
